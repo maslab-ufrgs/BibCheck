@@ -1,2 +1,9 @@
 # BibCheck
-Script feito para testar o padrão das entradas em um bibtex utilizado no MASLAB
+Python script to check entry format of BibTeX with the default format used at MASLAB
+
+## Requirements
+ - python3
+ - bibtexparser
+ 
+## Running
+python3 checkBib.py [yourBib.bib]
