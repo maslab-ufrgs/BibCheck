@@ -12,6 +12,8 @@ def erroID(i, ID):
 with open(sys.argv[1]) as bibtex_file:
     bib_database = bibtexparser.bparser.BibTexParser(common_strings=True, ignore_nonstandard_types=False, interpolate_strings=False).parse_file(bibtex_file)
 
+warning = 0
+
 for i in range(0, len(bib_database.entries)):
     ID = bib_database.entries[i]['ID']
     default = ''
@@ -45,6 +47,7 @@ for i in range(0, len(bib_database.entries)):
                 default = author[-1].capitalize()+year
 
                 if not ID.startswith(default):
+                    warning += 1
                     erroAuthor(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -53,6 +56,7 @@ for i in range(0, len(bib_database.entries)):
             else:
                 default = author[0].capitalize()+year
                 if not ID.startswith(default):
+                    warning += 1
                     erroID(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -68,6 +72,7 @@ for i in range(0, len(bib_database.entries)):
                 default = author1[-1].capitalize()+'&'+author2[-1].capitalize()+year
 
                 if not ID.startswith(default):
+                    warning += 1
                     erroAuthor(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -76,6 +81,7 @@ for i in range(0, len(bib_database.entries)):
             else:
                 default = author1[0].capitalize()+'&'+author2[0].capitalize()+year
                 if not ID.startswith(default):
+                    warning += 1
                     erroID(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -90,6 +96,7 @@ for i in range(0, len(bib_database.entries)):
                 default = author[-1].capitalize()+'+'+year
 
                 if not ID.startswith(default):
+                    warning += 1
                     erroAuthor(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -98,6 +105,7 @@ for i in range(0, len(bib_database.entries)):
             else:
                 default = author[0].capitalize()+'+'+year
                 if not ID.startswith(default):
+                    warning += 1
                     erroID(i, ID)
                     print(default)
                     print("---------------\\/---------------")
@@ -108,3 +116,5 @@ for i in range(0, len(bib_database.entries)):
     else:
         print("Uncheckable", ID, "manual check")
         print("---------------\\/---------------")
+
+print("Total de warnings: ", warning)
