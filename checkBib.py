@@ -2,26 +2,16 @@ import bibtexparser, sys, re, codecs
 from bibtexparser.customization import homogenize_latex_encoding
 warning = 0
 
-def erroAuthor(i, ID, default):
-    print("Padrão incorreto no campo Author da referencia:", i, "(", ID,
-            "), coloque o sobrenome antes do nome separando-os por virgula\n")
-    print(default)
-    print("---------------\\/---------------")
-
 def erroID(i, ID, default):
     print("Padrão incorreto no campo ID da referencia:", i, "(", ID,
-            "), coloque o sobrenome capitalizado e depois o ano:")
+            ");\nVerifique o(s) nome(s) do(s) autor(es), um possível padrão é colocar o sobrenome capitalizado e depois o ano:")
     print(default)
     print("---------------\\/---------------")
 
-def callWarn(i, ID, default, num):
+def callWarn(i, ID, default):
     global warning
-    if num == 1:
-        warning += 1
-        erroAuthor(i, ID, default)
-    elif num == 2:
-        warning += 1
-        erroID(i, ID, default)
+    warning += 1
+    erroID(i, ID, default)
 
 def with1author(authors, default, i, ID):
     author = authors[0].split(',')
@@ -29,14 +19,14 @@ def with1author(authors, default, i, ID):
         author = authors[0].split(' ')
         default = author[-1].capitalize()+year
         if not ID.startswith(default):
-            callWarn(i, ID, default, 1)
+            callWarn(i, ID, default)
             return 0
 
     else:
         author = author[0].split(' ')
         default = author[-1].capitalize()+year
         if not ID.startswith(default):
-            callWarn(i, ID, default, 2)
+            callWarn(i, ID, default)
             return 0
 
     return default
@@ -49,13 +39,13 @@ def with2authors(authors, default, i, ID):
         author2 = authors[1].split(' ')
         default = author1[-1].capitalize()+'&'+author2[-1].capitalize()+year
         if not ID.startswith(default):
-            callWarn(i, ID, default, 1)
+            callWarn(i, ID, default)
             return 0
 
     else:
         default = author1[0].capitalize()+'&'+author2[0].capitalize()+year
         if not ID.startswith(default):
-            callWarn(i, ID, default, 2)
+            callWarn(i, ID, default)
             return 0
 
     return default
@@ -67,14 +57,14 @@ def withmanyauthors(authors, default, i, ID):
         default = author[-1].capitalize()+'+'+year
 
         if not ID.startswith(default):
-            callWarn(i, ID, default, 1)
+            callWarn(i, ID, default)
             return 0
 
     else:
         author = author[0].split(' ')
         default = author[-1].capitalize()+'+'+year
         if not ID.startswith(default):
-            callWarn(i, ID, default, 2)
+            callWarn(i, ID, default)
             return 0
 
     return default
@@ -92,55 +82,51 @@ except UnicodeDecodeError as e:
     print(e)
     exit()
 
-for i in range(0, len(bib_database.entries)):
-    ID = bib_database.entries[i]['ID']
-    default = ''
+try:
+    for i in range(0, len(bib_database.entries)):
+        ID = bib_database.entries[i]['ID']
+        default = ''
 
-    print("\n---------------/\\---------------")
-    unCheck = ['booklet', 'manual', 'proceedings']
+        print("\n---------------/\\---------------")
+        unCheck = ['booklet', 'manual', 'proceedings']
 
-    if bib_database.entries[i]['ENTRYTYPE'] not in unCheck:
-        if "author" not in bib_database.entries[i]:
-            print("Uncheckable", ID, "manual check")
-            print("---------------\\/---------------")
-            continue
-        if "year" not in bib_database.entries[i]:
-            print("Uncheckable", ID, "manual check")
-            print("---------------\\/---------------")
-            continue
+        if bib_database.entries[i]['ENTRYTYPE'] not in unCheck:
+            checks = bib_database.entries[i]['author']
+            for rep in ['\\v', '\\c', '\\', '\'', '\"', '{', '}', '~', '^']:
+                checks = checks.replace(rep, '')
+            checks = checks.replace('\n', ' ')
 
-        checks = bib_database.entries[i]['author']
-        for rep in ['\\v', '\\', '\'', '\"', '{', '}', '~', '^']:
-            checks = checks.replace(rep, '')
-        checks = checks.replace('\n', ' ')
+            authors = checks.split(' and ')
+            year = bib_database.entries[i]['year']
 
-        authors = checks.split(' and ')
-        year = bib_database.entries[i]['year']
+            if len(authors) == 1:
+                if ("et al" in authors[0]):
+                    default = withmanyauthors(authors, default, i, ID)
+                    if (default == 0):
+                        continue
+                else:
+                    default = with1author(authors, default, i, ID)
+                    if (default == 0):
+                        continue
 
-        if len(authors) == 1:
-            if ("et al" in authors[0]):
+            elif len(authors) == 2:
+                default = with2authors(authors, default, i, ID)
+                if (default == 0):
+                    continue
+
+            elif len(authors) > 2:
                 default = withmanyauthors(authors, default, i, ID)
                 if (default == 0):
                     continue
-            else:
-                default = with1author(authors, default, i, ID)
-                if (default == 0):
-                    continue
 
-        elif len(authors) == 2:
-            default = with2authors(authors, default, i, ID)
-            if (default == 0):
-                continue
+            print(default, "OK")
+            print("---------------\\/---------------")
+        else:
+            print("---------------Uncheckable", ID, "manual check---------------")
+            print("---------------\\/---------------")
+except Exception as e:
+    print(e ,"faltando no ID:", ID)
+    exit()
 
-        elif len(authors) > 2:
-            default = withmanyauthors(authors, default, i, ID)
-            if (default == 0):
-                continue
-
-        print(default, "OK")
-        print("---------------\\/---------------")
-    else:
-        print("Uncheckable", ID, "manual check")
-        print("---------------\\/---------------")
-
-print("Total de warnings: ", warning)
+print("Total de warnings: ", warning, "*")
+print("* Nem todos os warnings são necessariamente erros, ainda não encontramos uma boa forma de verificar nomes separados por - e nomes com de, da, do...")
