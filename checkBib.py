@@ -8,10 +8,20 @@ def erroID(i, ID, default):
     print(default)
     print("---------------\\/---------------")
 
+def erroAno(i, ID, default):
+    print("Padrão incorreto no campo ID da referencia:", i, "(", ID,
+            ");\nVerifique ano da publicação, um possível padrão é:")
+    print(default)
+    print("---------------\\/---------------")
+
 def callWarn(i, ID, default):
     global warning
     warning += 1
-    erroID(i, ID, default)
+    ano = re.findall(r'\d+', ID)
+    if ano == [] or str(ano[0]) not in default:
+        erroAno(i, ID, default)
+    else:
+        erroID(i, ID, default)
 
 def with1author(authors, default, i, ID):
     author = authors[0].split(',')
@@ -25,6 +35,9 @@ def with1author(authors, default, i, ID):
     else:
         author = author[0].split(' ')
         default = author[-1]+year
+        if len(author) > 1:
+            if author[0]+author[1] in ID:
+                return default
         if not ID.startswith(default):
             callWarn(i, ID, default)
             return 0
@@ -34,7 +47,7 @@ def with1author(authors, default, i, ID):
 def with2authors(authors, default, i, ID):
     author1 = authors[0].split(',')
     author2 = authors[1].split(',')
-    if(len(author1) == 1 or len(author2) == 1):
+    if(len(author1) == 1 and len(author2) == 1):
         if len(author1) > 1:
             authors[0] = author1[0]
         if len(author2) > 1:
@@ -49,6 +62,12 @@ def with2authors(authors, default, i, ID):
         author1 = author1[0].split(' ')
         author2 = author2[0].split(' ')
         default = author1[-1]+'&'+author2[-1]+year
+        if len(author1) > 1:
+            if author1[0]+author1[1] in ID:
+                return default
+        if len(author2) > 1:
+            if author2[0]+author2[1] in ID:
+                return default
         if not ID.startswith(default):
             callWarn(i, ID, default)
             return 0
@@ -68,6 +87,9 @@ def withmanyauthors(authors, default, i, ID):
     else:
         author = author[0].split(' ')
         default = author[-1]+'+'+year
+        if len(author) > 1:
+            if author[0]+author[1] in ID:
+                return default
         if not ID.startswith(default):
             callWarn(i, ID, default)
             return 0
@@ -83,7 +105,7 @@ try:
     with open(sys.argv[1]) as bibtex_file:
         bib_database = bibtexparser.bparser.BibTexParser(common_strings=True, ignore_nonstandard_types=False, interpolate_strings=False).parse_file(bibtex_file)
 except UnicodeDecodeError as e:
-    print("invalid utf-8 near of line", str(i+1))
+    print("invalid utf-8 next to the line", str(i+1))
     print(e)
     exit()
 
@@ -93,22 +115,29 @@ try:
         default = ''
 
         print("\n---------------/\\---------------")
-        unCheck = ['booklet', 'manual', 'proceedings']
+        unCheck = ['booklet', 'manual', 'proceedings', 'misc']
 
         if bib_database.entries[i]['ENTRYTYPE'] not in unCheck:
             if 'author' not in bib_database.entries[i]:
                 checks = bib_database.entries[i]['editor']
             else:
                 checks = bib_database.entries[i]['author']
-            for rep in ['\\v', '\\c ', '\\c', '\\`', '\\', '\'', '\"', '{', '}', '~', '^']:
+
+            if '\"' in checks:
+                print("---------------Uncheckable", ID, ", umlaut found, please manual check---------------")
+                print("---------------\\/---------------")
+                continue
+
+            for rep in ['\\v', '\\c ', '\\c', '\\`', '\\', '\'', '{', '}', '~', '^']:
                 checks = checks.replace(rep, '')
+
             checks = checks.replace('\n', ' ')
             if '-' in checks and '-' not in ID:
                 checks = checks.replace('-', '')
 
             checks = unicodedata.normalize('NFD', checks).encode('ascii', 'ignore').decode("utf-8")
             authors = checks.split(' and ')
-            year = bib_database.entries[i]['year']
+            year = str(int(bib_database.entries[i]['year']))
 
             if len(authors) == 1:
                 if ("et al" in authors[0]):
@@ -130,10 +159,10 @@ try:
                 if (default == 0):
                     continue
 
-            print(default, "OK")
+            print(ID, "OK")
             print("---------------\\/---------------")
         else:
-            print("---------------Uncheckable", ID, "manual check---------------")
+            print("---------------Uncheckable", ID, ", entrytype may differ, manual check---------------")
             print("---------------\\/---------------")
 except Exception as e:
     print(e ,"faltando no ID:", ID)
