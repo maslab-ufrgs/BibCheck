@@ -2,13 +2,24 @@ import bibtexparser, sys, re, codecs, unicodedata
 from bibtexparser.customization import homogenize_latex_encoding
 warning = 0
 
+def check_if_string_in_file(file_name, string_to_search):
+	with open(file_name, 'r') as read_obj:
+		i = 0
+		for line in read_obj:
+			i += 1
+			if string_to_search in line:
+				return i
+	return 0
+
 def erroID(i, ID, default):
+    print("\n---------------/\\---------------")
     print("Padrão incorreto no campo ID da referencia:", i, "(", ID,
             ");\nVerifique o(s) nome(s) do(s) autor(es), um possível padrão é:")
     print(default)
     print("---------------\\/---------------")
 
 def erroAno(i, ID, default):
+    print("\n---------------/\\---------------")
     print("Padrão incorreto no campo ID da referencia:", i, "(", ID,
             ");\nVerifique ano da publicação, um possível padrão é:")
     print(default)
@@ -114,7 +125,6 @@ try:
         ID = bib_database.entries[i]['ID']
         default = ''
 
-        print("\n---------------/\\---------------")
         unCheck = ['booklet', 'manual', 'proceedings', 'misc']
 
         if bib_database.entries[i]['ENTRYTYPE'] not in unCheck:
@@ -124,9 +134,15 @@ try:
                 checks = bib_database.entries[i]['author']
 
             if '\"' in checks:
-                print("---------------Uncheckable", ID, ", umlaut found, please manual check---------------")
+                print("\n---------------/\\---------------")
+                print("---------------Uncheckable", ID, ", umlaut encontrado, realize uma checagem manual---------------")
                 print("---------------\\/---------------")
                 continue
+
+            title = bib_database.entries[i]['title']
+            if '{' in title and '}' in title:
+                print("\n---------------", ID, ", contem chaves duplas ou em excesso no titulo, linha:", check_if_string_in_file(sys.argv[1], title) , ", verifique a necessassidade delas---------------")
+                print("Titulo:", title, end="\n\n")
 
             for rep in ['\\v', '\\c ', '\\c', '\\`', '\\', '\'', '{', '}', '~', '^']:
                 checks = checks.replace(rep, '')
@@ -159,10 +175,9 @@ try:
                 if (default == 0):
                     continue
 
-            print(ID, "OK")
-            print("---------------\\/---------------")
         else:
-            print("---------------Uncheckable", ID, ", entrytype may differ, manual check---------------")
+            print("\n---------------/\\---------------")
+            print("---------------Uncheckable", ID, ", tipo de entrada pode não ser padronizada, realize uma checagem manual---------------")
             print("---------------\\/---------------")
 except Exception as e:
     print(e ,"faltando no ID:", ID)
