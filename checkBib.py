@@ -1,15 +1,15 @@
-import bibtexparser, sys, re, codecs, unicodedata
+import bibtexparser, sys, re, codecs, unicodedata, argparse
 from bibtexparser.customization import homogenize_latex_encoding
 warning = 0
 
 def check_if_string_in_file(file_name, string_to_search):
-	with open(file_name, 'r') as read_obj:
-		i = 0
-		for line in read_obj:
-			i += 1
-			if string_to_search in line:
-				return i
-	return 0
+    with open(file_name, 'r') as read_obj:
+        i = 0
+        for line in read_obj:
+            i += 1
+            if string_to_search in line:
+                return i
+    return 0
 
 def erroID(i, ID, default):
     print("\n---------------/\\---------------")
@@ -108,12 +108,19 @@ def withmanyauthors(authors, default, i, ID):
     return default
 
 try:
-    f = codecs.open(sys.argv[1], encoding='utf-8', errors='strict')
+    parser = argparse.ArgumentParser(description='Check the entries of bibtex files are in accordance with the estabilished standard available at https://wiki.inf.ufrgs.br/Maslab_FAQ#BibTeX')
+    parser.add_argument('-f', dest='file',
+                    help='File .bib to be checked')
+    parser.add_argument('-w', dest='warnings', type=int, default=1,
+                    help='Show all warnings messages. 0 = False (only warnings) or 1 = True (all messages).\nDefault is 1 = True')
+    args = parser.parse_args()
+
+    f = codecs.open(args.file, encoding='utf-8', errors='strict')
     i = 1
     for line in f:
         i += 1
         pass
-    with open(sys.argv[1]) as bibtex_file:
+    with open(args.file) as bibtex_file:
         bib_database = bibtexparser.bparser.BibTexParser(common_strings=True, ignore_nonstandard_types=False, interpolate_strings=False).parse_file(bibtex_file)
 except UnicodeDecodeError as e:
     print("invalid utf-8 next to the line", str(i+1))
@@ -134,14 +141,15 @@ try:
                 checks = bib_database.entries[i]['author']
 
             if '\"' in checks:
-                print("\n---------------/\\---------------")
-                print("---------------Uncheckable", ID, ", umlaut encontrado, realize uma checagem manual---------------")
-                print("---------------\\/---------------")
+                if args.warnings:
+	                print("\n---------------/\\---------------")
+	                print("---------------Uncheckable", ID, ", umlaut encontrado, realize uma checagem manual---------------")
+	                print("---------------\\/---------------")
                 continue
 
             title = bib_database.entries[i]['title']
-            if '{' in title and '}' in title:
-                print("\n---------------", ID, ", contem chaves duplas ou em excesso no titulo, linha:", check_if_string_in_file(sys.argv[1], title) , ", verifique a necessassidade delas---------------")
+            if '{' in title and '}' in title and args.warnings:
+                print("\n---------------", ID, ", contem chaves duplas ou em excesso no titulo, linha:", check_if_string_in_file(args.file, title) , ", verifique a necessassidade delas---------------")
                 print("Titulo:", title, end="\n\n")
 
             for rep in ['\\v', '\\c ', '\\c', '\\`', '\\', '\'', '{', '}', '~', '^']:
@@ -175,7 +183,7 @@ try:
                 if (default == 0):
                     continue
 
-        else:
+        elif args.warnings:
             print("\n---------------/\\---------------")
             print("---------------Uncheckable", ID, ", tipo de entrada pode não ser padronizada, realize uma checagem manual---------------")
             print("---------------\\/---------------")
